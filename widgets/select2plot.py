@@ -27,22 +27,21 @@ class Select2Plot(QMainWindow):
         self.logBox = logBox
         self.plotArea = None
         self.data = None
-        self.pvs = []
 
     # Search the PVs a show to user select which wants
     def selectPvs(self, pvs, data, plotArea):
         self.plotArea = plotArea
         self.data = data
-        self.pvs = pvs
         # Remove old PVs from list
         for i in reversed(range(self.scrollArea.vbox.count())): 
             self.scrollArea.vbox.itemAt(i).widget().setParent(None)
-        self.addList()
+        self.addList(pvs)
 
     # Add searched PV to a list to user select which they want
-    def addList(self):
-        for pv in self.pvs:
-            self.scrollArea.vbox.addWidget(QCheckBox(pv, checked=(pv in self.pvs), minimumHeight=20))
+    def addList(self, pvs):
+        for pv in pvs:
+            text = pv if pv not in self.data.keys() else pv + " ✔"
+            self.scrollArea.vbox.addWidget(QCheckBox(text, minimumHeight=20))
         self.scrollArea.vbox.setAlignment(Qt.AlignTop)
 
     # Select all the PVs listed
@@ -56,7 +55,8 @@ class Select2Plot(QMainWindow):
             "setDifference": self.cb_setDiff.isChecked(),
             "forceContinuity": self.cb_forceContinuity.isChecked(),
             "removeOutliers": self.cb_removeOutliers.isChecked(),
-            "fft": self.cb_fft.isChecked()
+            "fft": self.cb_fft.isChecked(),
+            "livePlot": self.cb_livePlot.isChecked()
         }
 
     # Set a new list of PVs
@@ -64,7 +64,12 @@ class Select2Plot(QMainWindow):
         pvs = []
         for i in range(self.scrollArea.vbox.count()):
             option = self.scrollArea.vbox.itemAt(i).widget()
-            if option.isChecked():
+            if option.isChecked() and option.text()[-1] == "✔":
+                pvs.append(option.text()[:-2])
+            elif option.isChecked() and self.cb_livePlot.isChecked():
                 pvs.append(option.text())
-        self.plotArea.addWidget(plot(self.data, pvs, self.getPlotOptions()))
+            else:
+                print("Warning: selected PV to plot is not load")
+        if pvs != []:
+            self.plotArea.addWidget(plot(self.data, pvs, self.getPlotOptions()))
         self.close()

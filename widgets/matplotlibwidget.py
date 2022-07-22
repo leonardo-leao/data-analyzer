@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import *
 
 import matplotlib
+from matplotlib.figure import Figure
 import matplotlib.dates as mdates
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FC
@@ -25,7 +26,7 @@ class matplotlibwidget(QWidget):
         self.plots = {}
 
         # Figure Properties
-        figure = matplotlib.figure.Figure(dpi=90)
+        figure = Figure(dpi=90)
         figure.set_constrained_layout(True)
 
         FC.setSizePolicy(self, QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -35,7 +36,6 @@ class matplotlibwidget(QWidget):
         self.canvas = FC(figure)
         self.canvas.axes = self.canvas.figure.add_subplot(111)
         self.canvas.axes.ticklabel_format(axis="y", style="sci")
-        self.canvas.axes.grid(True, axis="x", linestyle="--")
 
         vertical_layout = QVBoxLayout()
         vertical_layout.addWidget(NavigationToolbar(self.canvas, self))
@@ -67,6 +67,7 @@ class matplotlibwidget(QWidget):
         else:
             self.canvas.axes.set_xlim([x[0][-1], x[0][0]])
 
+        self.canvas.axes.grid(True, axis="x", linestyle="--")
         self.canvas.draw()
 
     #

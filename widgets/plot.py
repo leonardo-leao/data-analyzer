@@ -3,16 +3,9 @@ from PyQt5.uic import loadUi
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-import matplotlib
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FC
-from matplotlib.figure import Figure
-import matplotlib.dates as mdates
-
 import numpy as np
 from actions.analytics import FourierTransform
 from actions.livePlot import LivePlot
-
-matplotlib.use('Qt5Agg')
 
 class plot(QWidget):
     
@@ -23,8 +16,9 @@ class plot(QWidget):
         self.data = data
         self.labels = pvs
         self.options = options
+        self.livePlot = None
 
-        if data != None:
+        if not self.options["livePlot"]:
             # Separates data between x and y axes
             self.X, self.Y = [], []
             for pv in self.labels:
@@ -33,10 +27,9 @@ class plot(QWidget):
 
             self.plotedX = None
             self.plotedY = None
-
             self.plot()
         else:
-            self.livePlot()
+            self.live()
 
         # Button actions
         self.button_plot_run.clicked.connect(self.plot)
@@ -49,6 +42,8 @@ class plot(QWidget):
 
     #
     def remove(self):
+        if self.livePlot != None:
+            self.livePlot.terminate()
         self.close()
 
     #
@@ -74,23 +69,26 @@ class plot(QWidget):
 
     #
     def plot(self):
-        #self.plotedX = self.X.copy()
-        #self.plotedY = self.Y.copy()
-#
-        ## Check if setDifference is checked and apply if true
-        #if self.options["setDifference"]:
-        #    for i in range(len(self.plotedY)):
-        #        self.plotedY[i] = self.plotedY[i] - self.plotedY[i][0]
-#
-        #if self.options["fft"]:
-        #    for i in range(len(self.plotedX)):
-        #        fourierTransform = FourierTransform(self.plotedX[i], self.plotedY[i])
-        #        self.plotedX[i], self.plotedY[i] = fourierTransform.fft()
-#
-        #self.plotArea.plot(self.plotedX, self.plotedY, self.labels)
-        self.live()
+
+        if self.options["livePlot"]:
+            self.live()
+        else:
+            self.plotedX = self.X.copy()
+            self.plotedY = self.Y.copy()
+
+            # Check if setDifference is checked and apply if true
+            if self.options["setDifference"]:
+                for i in range(len(self.plotedY)):
+                    self.plotedY[i] = self.plotedY[i] - self.plotedY[i][0]
+
+            if self.options["fft"]:
+                for i in range(len(self.plotedX)):
+                    fourierTransform = FourierTransform(self.plotedX[i], self.plotedY[i])
+                    self.plotedX[i], self.plotedY[i] = fourierTransform.fft()
+
+            self.plotArea.plot(self.plotedX, self.plotedY, self.labels)
 
     def live(self) -> None:
-        livePlot = LivePlot(self.labels, self.plotArea, parent=self)
-        livePlot.start()
+        self.livePlot = LivePlot(self.labels, self.plotArea, parent=self)
+        self.livePlot.start()
     

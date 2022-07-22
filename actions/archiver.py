@@ -24,13 +24,14 @@ class Request(QtCore.QThread):
 
     url = "http://ais-eng-srv-ta.cnpem.br/retrieval/data/getData.json"
 
-    def __init__(self, pvs: list, ini: datetime, end: datetime, progressBar = None, mean: int = None, parent = None) -> None:
+    def __init__(self, pvs: list, ini: datetime, end: datetime, mean: int, reference: datetime, progressBar = None, parent = None) -> None:
         super(Request, self).__init__(parent)
         self.pvs = pvs
         self.ini = ini
         self.end = end
         self.progressBar = progressBar
         self.mean = mean
+        self.reference = reference
         self.result = None
 
         # ProgressBar 
@@ -46,7 +47,7 @@ class Request(QtCore.QThread):
 
         for i in range(len(self.pvs)):
             pv = self.pvs[i]
-            meanPV = pv if self.mean == None else f"mean_{self.mean}({pv})"
+            meanPV = f"({pv})" if self.mean == None else f"mean_{self.mean}({pv})"
             
             if None not in [self.ini, self.end]:
                 ini = self.datetime2Str(self.ini)

@@ -470,7 +470,7 @@
        <property name="maximumSize">
         <size>
          <width>158</width>
-         <height>240</height>
+         <height>220</height>
         </size>
        </property>
        <property name="font">
@@ -523,7 +523,7 @@
         <property name="geometry">
          <rect>
           <x>80</x>
-          <y>190</y>
+          <y>170</y>
           <width>61</width>
           <height>31</height>
          </rect>
@@ -552,7 +552,7 @@
         <property name="geometry">
          <rect>
           <x>10</x>
-          <y>190</y>
+          <y>170</y>
           <width>61</width>
           <height>31</height>
          </rect>
@@ -1005,19 +1005,6 @@ QPushButton:pressed#button_plot_run
          <string>Run</string>
         </property>
        </widget>
-       <widget class="QCheckBox" name="checkBox_4">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>120</y>
-          <width>141</width>
-          <height>17</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>Live Plot</string>
-        </property>
-       </widget>
        <widget class="QPushButton" name="button_plot_remove">
         <property name="enabled">
          <bool>true</bool>
@@ -1025,7 +1012,7 @@ QPushButton:pressed#button_plot_run
         <property name="geometry">
          <rect>
           <x>20</x>
-          <y>150</y>
+          <y>130</y>
           <width>21</width>
           <height>21</height>
          </rect>
@@ -1070,7 +1057,7 @@ QPushButton:pressed#button_plot_remove
         <property name="geometry">
          <rect>
           <x>50</x>
-          <y>150</y>
+          <y>130</y>
           <width>21</width>
           <height>21</height>
          </rect>
@@ -1125,7 +1112,7 @@ QPushButton:pressed#button_plot_expand
         <property name="geometry">
          <rect>
           <x>80</x>
-          <y>150</y>
+          <y>130</y>
           <width>21</width>
           <height>21</height>
          </rect>
@@ -1160,7 +1147,7 @@ QPushButton:pressed#button_plot_options
         <property name="geometry">
          <rect>
           <x>110</x>
-          <y>150</y>
+          <y>130</y>
           <width>21</width>
           <height>21</height>
          </rect>

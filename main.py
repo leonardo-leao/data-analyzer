@@ -17,11 +17,15 @@ class DataAnalyzer(QMainWindow):
         self.setWindowTitle("Data Analyzer")
 
         # Button actions
-        self.button_addPlot.clicked.connect(lambda: self.addPlot())
+        self.button_addPlot.clicked.connect(self.addPlot)
         self.button_searchPV.clicked.connect(self.search_pv)
         self.button_request.clicked.connect(self.request)
         self.button_clearPVs.clicked.connect(self.clearPVs)
         self.button_clearPVsLoaded.clicked.connect(self.clearPVsLoaded)
+
+        # Checkbox triggers
+        self.cb_mean.clicked.connect(lambda: self.enableForm("mean"))
+        self.cb_reference.clicked.connect(lambda: self.enableForm("reference"))
 
         # Plot Area
         self.plotArea.widget = QWidget()
@@ -47,6 +51,13 @@ class DataAnalyzer(QMainWindow):
         self.select2Plot.show()
 
     #
+    def enableForm(self, option):
+        if option == "mean":
+            self.form_mean.setEnabled(self.cb_mean.isChecked())
+        elif option == "reference":
+            self.form_reference.setEnabled(self.cb_reference.isChecked())
+
+    #
     def search_pv(self):
         pvName = self.form_pvName.text()
         if pvName != "":
@@ -61,13 +72,23 @@ class DataAnalyzer(QMainWindow):
             alreadyLoaded = self.loaded.keys()
             ini, end = self.getDatetimeRange()
             pvs = []
+            
             # Check if some PV in list was not loaded
             for pv in self.searchPVs.pvs:
                 if (pv not in alreadyLoaded) or ((ini, end) != self.loaded[pv]["request"]):
                     pvs.append(pv)
                 else:
                     print("Warning: pv has already been loaded with this datetime range")
-            self.archiverRequest = Request(pvs, ini, end, progressBar=self.progressBar)
+            
+            # Request options
+            mean, reference = None, None
+            if self.cb_mean.isChecked():
+                mean = self.form_mean.value()
+            if self.cb_reference.isChecked():
+                reference = self.form_reference.dateTime().toPyDateTime()
+
+            # Create Request
+            self.archiverRequest = Request(pvs, ini, end, mean, reference, progressBar=self.progressBar)
             self.archiverRequest.start()
             self.archiverRequest.finished.connect(self.requestFinished)
         else:
