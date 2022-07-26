@@ -11,7 +11,7 @@ class Search(QtCore.QThread):
     # Constructor method
     def __init__(self, search: str, limit: int = 500, parent=None) -> None:
         super(Search, self).__init__(parent)
-        self.search = search        # String to process variable search
+        self.search = search         # String to process variable search
         self.limit = limit          # Limit of PVs returned
         self.pvs = []               # List of PVs after search
 
