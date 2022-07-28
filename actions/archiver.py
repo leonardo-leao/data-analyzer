@@ -25,7 +25,7 @@ class Request(QtCore.QThread):
     url = "http://ais-eng-srv-ta.cnpem.br/retrieval/data/getData.json"
 
     def __init__(self, pvs: list, ini: datetime, end: datetime, mean: int, reference: datetime, progressBar = None, parent = None) -> None:
-        super(Request, self).__init__(parent)
+        #super(Request, self).__init__(parent)
         self.pvs = pvs
         self.ini = ini
         self.end = end
