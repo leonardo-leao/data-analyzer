@@ -18,7 +18,7 @@ class LivePlot(QtCore.QThread):
     def run(self) -> None:
         while self.running:
             now = datetime.now()
-            self.archiverRequest = Request(self.pvs, now, now)
+            self.archiverRequest = Request(self.pvs, now, now, None, None)
             self.archiverRequest.start()
             self.archiverRequest.finished.connect(self.requestFinished)
             sleep(2)

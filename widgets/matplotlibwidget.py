@@ -47,18 +47,18 @@ class matplotlibwidget(QWidget):
         self.x_axis = None
         self.y_axis = None
         self.label = None
+        self.graphs = {}
 
     #
-    def plot(self, x: list, y: list, label: str) -> None:
+    def plot(self, x: list, y: list, label: list) -> None:
         self.x_axis = x
         self.y_axis = y
         self.label = label
 
         self.canvas.axes.cla()
         for i in range(len(x)):
-            line = self.canvas.axes.plot(x[i], y[i], label=label, color=self.colors[i])
-            self.lines.append(line)
-
+            line = self.canvas.axes.plot(x[i], y[i], label=label[i], color=self.colors[i])
+            self.lines.append(line[0])
         if type(x[0][0]) == datetime:
             self.setDateToX(x)
         
@@ -68,27 +68,47 @@ class matplotlibwidget(QWidget):
             self.canvas.axes.set_xlim([x[0][-1], x[0][0]])
 
         self.canvas.axes.grid(True, axis="x", linestyle="--")
-        self.canvas.draw()
+        self.updateDraw()
 
     #
-    def updateY(self, y):
+    def update(self, x, y, labels):
+        self.x_axis = x
         self.y_axis = y
+        self.label = labels
         self.clearAxisY()
         for i in range(len(y)):
-            line = self.canvas.axes.plot(self.x_axis[i], y[i], label=self.label[i], color=self.colors[i])
-            self.lines.append(line)
+            line = self.canvas.axes.plot(x[i], y[i], label=labels[i], color=self.colors[i])
+            self.lines.append(line[0])
         self.updateDraw()
 
     #
     def updateDraw(self):
+        legend = self.canvas.axes.legend(self.lines, self.label, bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower left",
+                                mode="expand", borderaxespad=0, ncol=3)
+        self.canvas.figure.canvas.mpl_connect("pick_event", self.on_pick)
+
+        lines_legend = legend.get_lines()
+        for i in range(len(lines_legend)):
+            lines_legend[i].set_picker(True)
+            lines_legend[i].set_pickradius(5)
+            self.graphs[lines_legend[i]] = self.lines[i]
+
         self.canvas.axes.relim()            # recompute the ax.dataLim
         self.canvas.axes.autoscale_view()   # update ax.viewLim using the new dataLim
         self.canvas.draw()
 
     #
+    def on_pick(self, event):
+        legend = event.artist
+        isVisible = legend.get_visible()
+        self.graphs[legend].set_visible(not isVisible)
+        legend.set_visible(not isVisible)
+        self.updateDraw()
+
+    #
     def clearAxisY(self):
         for i in range(len(self.lines)):
-            self.lines[i][0].remove()
+            self.lines[i].remove()
         self.lines = []
 
     #

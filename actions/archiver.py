@@ -1,7 +1,7 @@
 import ast
 import requests
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from PyQt5 import QtCore
 
 class Search(QtCore.QThread):
@@ -24,8 +24,8 @@ class Request(QtCore.QThread):
 
     url = "http://ais-eng-srv-ta.cnpem.br/retrieval/data/getData.json"
 
-    def __init__(self, pvs: list, ini: datetime, end: datetime, mean: int, reference: datetime, progressBar = None, parent = None) -> None:
-        #super(Request, self).__init__(parent)
+    def __init__(self, pvs: list, ini: datetime, end: datetime, mean: int = None, reference: datetime = None, progressBar = None, parent = None) -> None:
+        super(Request, self).__init__(parent)
         self.pvs = pvs
         self.ini = ini
         self.end = end
@@ -41,6 +41,13 @@ class Request(QtCore.QThread):
     def datetime2Str(self, datetime: datetime) -> str:
         return datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
 
+    def getXY(self) -> list[list]:
+        x, y = [], []
+        for pv in self.result.keys():
+            x.append(self.result[pv]["datetimes"].copy())
+            y.append(self.result[pv]["values"].copy())
+        return [x, y]
+
     def run(self) -> None:
 
         self.result = {}
@@ -50,8 +57,8 @@ class Request(QtCore.QThread):
             meanPV = f"({pv})" if self.mean == None else f"mean_{self.mean}({pv})"
             
             if None not in [self.ini, self.end]:
-                ini = self.datetime2Str(self.ini)
-                end = self.datetime2Str(self.end)
+                ini = self.datetime2Str(self.ini - timedelta(minutes=30))
+                end = self.datetime2Str(self.end + timedelta(minutes=30))
                 query = {"pv": meanPV, "from": ini, "to": end}
             else:
                 query = {"pv": meanPV}
@@ -64,15 +71,19 @@ class Request(QtCore.QThread):
 
                 datetimes, values = [], []
                 for i in range(len(data)):
-                    datetimes.append(datetime.fromtimestamp(data[i]["secs"]))
-                    values.append(data[i]["val"])
+                    time = datetime.fromtimestamp(data[i]["secs"])
+                    if self.ini <= time <= self.end:
+                        datetimes.append(time)
+                        values.append(data[i]["val"])
 
-                self.result[pv] = {
-                    "datetimes": datetimes, 
-                    "values": values,
-                    "unit": metadata["EGU"],
-                    "request": (self.ini, self.end)
-                }
+                if [] not in [datetimes, values]:
+                    self.result[pv] = {
+                        "datetimes": datetimes, 
+                        "values": values,
+                        "unit": metadata["EGU"],
+                        "request": (self.ini, self.end)
+                    }
+
             except Exception as e:
                 self.result[pv] = "Failed"
                 print("[ARCHIVER] Error - message:", e)

@@ -53,7 +53,6 @@ class Select2Plot(QMainWindow):
     def getPlotOptions(self):
         return {
             "setDifference": self.cb_setDiff.isChecked(),
-            "forceContinuity": self.cb_forceContinuity.isChecked(),
             "removeOutliers": self.cb_removeOutliers.isChecked(),
             "fft": self.cb_fft.isChecked(),
             "livePlot": self.cb_livePlot.isChecked()

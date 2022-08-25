@@ -1,8 +1,9 @@
 import numpy as np
 from scipy.fft import rfftfreq, rfft
 from scipy.optimize import curve_fit
-from datetime import datetime
+from datetime import datetime, timedelta
 from PyQt5 import QtCore
+from statistics import mode
 
 class FourierTransform():
 
@@ -37,11 +38,10 @@ class FourierTransform():
 
 class NonlinearFit():
 
-    def __init__(self, x, y, pointsToFit) -> None:
+    def __init__(self, x, y, pointsToFit = None) -> None:
         self.x = x
         self.y = y
         self.pointsToFit = pointsToFit
-        print(self.pointsToFit)
 
         # Final Result of Fit
         self.fit = None
@@ -49,6 +49,10 @@ class NonlinearFit():
     def polynomial(self, x, a, b, c, d) -> float:
         x = np.array(x)
         return a*(x**3) + b*(x**2) + c*x + d
+
+    def fourier(self, x, a, b, c, d, e, f, g, h, i, j, L) -> float:
+        x = np.array(x)
+        return a/2 + a*np.cos(np.pi*x/L) + b*np.sin(np.pi*x/L) + c*np.cos(2*np.pi*x/L) + d*np.sin(2*np.pi*x/L) + e*np.cos(3*np.pi*x/L) + f*np.sin(3*np.pi*x/L) + g*np.cos(4*np.pi*x/L) + h*np.sin(4*np.pi*x/L) + i*np.cos(5*np.pi*x/L) + j*np.sin(5*np.pi*x/L)
 
     # This fitting method is based on fitting small parts of the curve as a polynomial
     def standard(self) -> None:
@@ -86,24 +90,25 @@ class NonlinearFit():
             self.pointsToFit = 1.5*self.pointsToFit
             self.standard()
 
+    def fourierSeries(self) -> None:
+        
+        parameters = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        parameters, covariance = curve_fit(self.fourier, self.x, self.y, parameters, method="trf", loss="arctan")
+        self.fit = {"x": self.x, "y": np.array(self.fourier(self.x, *parameters))}
+
 class Outliers(QtCore.QThread):
 
-    """
-        Indicated number os points to fit to each monitoring system:
-        Concrete temperature: 12 points
-        Hydrostatic leveling system: 300 points
-    """
-
-    def __init__(self, x, y, pv) -> None:
+    def __init__(self, x, y, pv, parent=None) -> None:
+        super(Outliers, self).__init__(parent)
         self.x = np.array(x)
         self.y = np.array(y)
 
         if "HLS" in pv:
             self.pointsToFit = 300
-        elif "Concrete" in pv and "Temp" in pv:
+        elif "Concrete" in pv and ("Temp" in pv or "Strain" in pv):
             self.pointsToFit = 12
-
-        self.index_outliers = self.identify()
+        else:
+            self.pointsToFit = 100
 
     def iqr(self, y):
         q1 = np.quantile(y, 0.25)
@@ -133,3 +138,101 @@ class Outliers(QtCore.QThread):
     def remove(self):
         self.x = np.delete(self.x, self.index_outliers)
         self.y = np.delete(self.y, self.index_outliers)
+
+    def run(self):
+        self.index_outliers = self.identify()
+        self.remove()
+
+class Grouping():
+
+    def __init__(self, x, y, ini, end, step: 'seconds'):
+        self.x = x
+        self.y = y
+        self.ini = ini
+        self.end = end
+        self.step = timedelta(seconds=step)/2
+        self.size = self.reconstruct()
+    
+    # FOH - first order holder
+    def interpolate(self, x1, y1, x2, y2, x):
+        return y1 + (x-x1)*(y2-y1)/(x2-x1)
+
+    def reconstruct(self):
+
+        avg = []
+        for i in range(len(self.x)):
+
+            # For the initial data is used a zero order holder (ZOH);
+            while (self.x[i][0] - self.ini) >= self.step * 0.5:
+                self.x[i].insert(0, self.x[i][0] - self.step)
+                self.y[i].insert(0, self.y[i][0])
+
+            # For middle data is used a first order holder (FOH) with linear interpolation
+            inserted = 0
+            for k in range(1, len(self.x[i])):
+                j = k + inserted
+                while (self.x[i][j] - self.x[i][j-1]) >= self.step * 1.1:
+                    self.x[i].insert(j, self.x[i][j] - self.step)
+                    self.y[i].insert(j, self.interpolate(
+                        x1 = 0, 
+                        y1 = self.y[i][j-1],
+                        x2 = (self.x[i][j] - self.x[i][j-1]).total_seconds(),
+                        y2 = self.y[i][j],
+                        x = (self.x[i][j] - self.x[i][j-1] - self.step).total_seconds()
+                    ))
+                    inserted = inserted + 1
+
+            # Number de acquisition in the time range
+            acquisition = (self.end - self.ini)/self.step
+
+            # For the initial data is used a zero order holder (ZOH);
+            while len(self.x[i]) < acquisition:
+                self.x[i].append(self.x[i][-1] + self.step)
+                self.y[i].append(self.y[i][-1])
+
+            avg.append(len(self.x[i]))
+
+        return mode(avg)
+
+    def average(self):
+        avg = [0 for _ in range(self.size)]; cont = 0
+        x = []
+        for i in range(len(self.y)):
+            if len(self.y[i]) == self.size:
+                for j in range(self.size):
+                    avg[j] += self.y[i][j]
+                cont = cont + 1
+                x = self.x[i]
+        
+        return x, [avg[i]/cont for i in range(len(avg))]
+
+class Extra():
+
+    @staticmethod
+    def movingRMS(y, shift):
+        y = [0] + y     # This implementation ignore the first valid input
+        yc = np.cumsum(np.abs(y)**2)
+        return np.sqrt((yc[shift:] - yc[:-shift]) / shift)
+    
+if __name__ == "__main__":
+    from archiver import Request, Search
+    import matplotlib.pyplot as plt
+    s = Search("TU*S:SS*Concrete*N*Temp*")
+    s.run()
+
+    timeRange = datetime(2022, 8, 1), datetime(2022, 8, 19)
+    r = Request(s.pvs, *timeRange)
+    r.run()
+
+    x, y = r.getXY()
+    g = Grouping(*r.getXY(), *timeRange, 1800)
+
+    x, y = g.average()
+
+    
+
+    plt.plot(x, y)
+    movingrms = Extra.movingRMS(y, 50)
+    plt.plot(x[(len(x)-len(movingrms))//2:(len(x)-len(movingrms))//2 + len(movingrms)], movingrms)
+    
+    plt.show()
